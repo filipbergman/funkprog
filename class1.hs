@@ -24,7 +24,7 @@ hanoi 0 = 0
 hanoi n = 1 + 2 * hanoi (n-1)
 -- 1 + 2(1+2*(1+2*1))
 
--- 2.3.4
+-- 2.1.4
 smallestFactor n = nextFactor 1 n
      
 nextFactor k n
@@ -33,3 +33,31 @@ nextFactor k n
     | otherwise         = nextFactor (k+1) n
 
 numFactors n = nextFactor 1 n -- todo
+
+-- 2.1.5
+type Month = Integer
+daysInMonth :: Month -> Integer -> Integer
+daysInMonth m y 
+    | m < 0 || m > 12 = 0
+    | m == 1 || m == 3 || m == 5 || m == 7 || m == 8 || m == 10 || m == 12 = 31
+    | m == 4 || m == 6 || m == 9 || m == 11 = 30
+    | mod y 4 == 0 = 29
+    | otherwise = 28
+
+data Date = Date Integer Month Integer
+
+d1 = Date 2014 2 20
+
+validDate :: Date -> Bool
+
+validDate (Date y m d) 
+    | (d>0) && (d <= daysInMonth m y)   = True
+    | otherwise                         = False
+
+-- 2.2.1
+multiply :: Num a => [a] -> a
+multiply [] = 1
+multiply (x:xs) = x * multiply xs
+
+-- 2.2.2
+substitute :: String s => s
