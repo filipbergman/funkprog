@@ -60,4 +60,9 @@ multiply [] = 1
 multiply (x:xs) = x * multiply xs
 
 -- 2.2.2
-substitute :: String s => s
+substitute :: Eq a => a -> a -> [a] -> [a]
+substitute _ _ [] = []
+substitute x y (z:ys)
+    | y == z    = x: (substitute x y ys)
+    | otherwise = z: (substitute x y ys)
+
