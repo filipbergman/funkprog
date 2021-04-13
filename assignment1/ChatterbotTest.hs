@@ -79,6 +79,7 @@ module Main where
       "transformationApply" ~: transformationApplyTest,
       "transformationsApply" ~: transformationsApplyTest,
       "reflect" ~: reflectTest,
-      "rulesApply" ~: rulesApplyTest
+      "rulesApply" ~: rulesApplyTest,
+      "reduce" ~: reduceTest
     ]
 

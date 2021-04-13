@@ -32,12 +32,15 @@ stateOfMind :: BotBrain -> IO (Phrase -> Phrase)
 stateOfMind _ = return id
 
 rulesApply :: [PhrasePair] -> Phrase -> Phrase
-{- TO BE WRITTEN -}
-rulesApply _ = id
+rulesApply (x:xs) y
+ | transformationsApply "*" id (x:xs) y /= Nothing =  justToVal(transformationsApply "*" id (x:xs) (reflect y))
+ | otherwise = []
 
 reflect :: Phrase -> Phrase
-{- TO BE WRITTEN -}
-reflect = id
+reflect [] = []
+reflect (x:xs)
+ | elem x (map fst reflections) = ((map snd reflections) !! justToVal(elemIndex x (map fst reflections))) : (reflect xs)
+ | otherwise = x : reflect xs
 
 reflections =
   [ ("am",     "are"),
@@ -183,24 +186,21 @@ matchCheck = matchTest == Just testSubstitutions
 
 -- Applying a single pattern
 transformationApply :: Eq a => a -> ([a] -> [a]) -> [a] -> ([a], [a]) -> Maybe [a]
-transformationApply _ _ _ _ = Nothing
-transformationApply wc func1 (x:xs) ((y:ys), (z:zs))
-  | match wc (y:ys) (x:xs) /= Nothing   = Just (substitute wc (z:zs) (func1(justToVal(match wc (y:ys) (x:xs)))))
+--transformationApply _ _ _ _ = Nothing
+transformationApply wc func (x:xs) ((y:ys), (z:zs))
+  | match wc (y:ys) (x:xs) /= Nothing   = Just (substitute wc (z:zs) (func(justToVal(match wc (y:ys) (x:xs)))))
   | otherwise                           = Nothing
 
 
 justToVal :: Maybe a -> a
-justToVal 
- | (Just a) = a
-
-
-
-{- TO BE WRITTEN -}
+justToVal (Just a) = a
 
 
 -- Applying a list of patterns until one succeeds
 transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
-transformationsApply _ _ _ _ = Nothing
-{- TO BE WRITTEN -}
+transformationsApply _ _ [] _ = Nothing
+transformationsApply wc func (x:xs) (y:ys)
+ | transformationApply wc func (y:ys) x /= Nothing = transformationApply wc func (y:ys) x
+ | otherwise = transformationsApply wc func xs (y:ys)
 
 
