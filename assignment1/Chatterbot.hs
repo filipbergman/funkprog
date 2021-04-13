@@ -123,9 +123,10 @@ match _ [] _ = Nothing
 match _ _ [] = Nothing
 
 match x (y:ys) (z:zs)
-  | x == y                = orElse (singleWildcardMatch (y:ys) (z:zs)) (longerWildcardMatch (y:ys) (z:zs))
-  | x /= y && y == z      = match x ys zs
-  | y /= z                = Nothing
+  | x == y && length ys == 0  = Just (z:zs) -- If the pattern IS the wildcard
+  | x == y                    = orElse (singleWildcardMatch (y:ys) (z:zs)) (longerWildcardMatch (y:ys) (z:zs))
+  | x /= y && y == z          = match x ys zs
+  | y /= z                    = Nothing
 
 -- Helper function to match
 singleWildcardMatch, longerWildcardMatch :: Eq a => [a] -> [a] -> Maybe [a]
@@ -133,27 +134,34 @@ singleWildcardMatch (wc:ps) (x:xs)
   | ps == xs   = Just [x]
   | otherwise  = Nothing
 
-longerWildcardMatch (wc:ps) (x:xs) -- TODO: match '*' "* and * f" "you and me 123" does not work
+longerWildcardMatch (wc:ps) (x:xs) 
+  | length ps > length (x:xs)             = Nothing
+  | head ps /= x                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
+  | elemIndex wc (tail ps) /= Nothing     = Just []
+  | ps /= (x:xs)                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
+  | ps == (x:xs)                          = Just []
+  | otherwise                             = Nothing
+
+{-- WORKINGlongerWildcardMatch (wc:ps) (x:xs) -- TODO: match '*' "* and * f" "you and me 123" does not work
   | length ps > length (x:xs)             = Nothing
   | head ps /= x                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
   | elemIndex wc (tail ps) /= Nothing     = Just []
   | ps /= (x:xs)                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
   -- | elemIndex wc (tail ps) /= Nothing     = concatWithMaybe x (longerWildcardMatch (wc:(  drop (fromMaybe 0 (elemIndex wc (tail ps))) ps  )) xs) -- Maybe not necessary?
   | ps == (x:xs)                          = Just []
-  | otherwise                             = Nothing
+  | otherwise                             = Nothing --}
 
---WORKINGlongerWildcardMatch (wc:ps) (x:xs) 
+--OLDlongerWildcardMatch (wc:ps) (x:xs) 
 --  | length ps > length (x:xs)        = Nothing ???
 --  | ps /= (x:xs)                     = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
 --  | head ps /= x                     = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
 --  | ps == (x:xs) || head ps == wc    = Just []
 --  | otherwise                        = Nothing
 
+-- Helperfunction that concants an element to a maybe list
 concatWithMaybe :: a -> Maybe [a] -> Maybe [a]
 concatWithMaybe _ Nothing   = Nothing
 concatWithMaybe x (Just xs) = Just (x : xs)
-
--- TODO: make a contains function for checking if list contains wildcard?
 
 -- Test cases --------------------
 
@@ -176,6 +184,17 @@ matchCheck = matchTest == Just testSubstitutions
 -- Applying a single pattern
 transformationApply :: Eq a => a -> ([a] -> [a]) -> [a] -> ([a], [a]) -> Maybe [a]
 transformationApply _ _ _ _ = Nothing
+transformationApply wc func1 (x:xs) ((y:ys), (z:zs))
+  | match wc (y:ys) (x:xs) /= Nothing   = Just (substitute wc (z:zs) (func1(justToVal(match wc (y:ys) (x:xs)))))
+  | otherwise                           = Nothing
+
+
+justToVal :: Maybe a -> a
+justToVal 
+ | (Just a) = a
+
+
+
 {- TO BE WRITTEN -}
 
 
