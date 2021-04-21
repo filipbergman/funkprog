@@ -24,18 +24,26 @@ type Phrase = [String]
 type PhrasePair = (Phrase, Phrase)
 type BotBrain = [(Phrase, [Phrase])]
 
-
 --------------------------------------------------------
 
 stateOfMind :: BotBrain -> IO (Phrase -> Phrase)
-{- TO BE WRITTEN -}
-stateOfMind _ = return id
+stateOfMind brain = do
+  r <- randomIO :: IO Float
+  return (rulesApply (map (newFunc r) brain))
+
+newFunc :: Float -> (Phrase, [Phrase]) -> PhrasePair
+newFunc r pp = (fst pp, pick r (snd pp))
 
 rulesApply :: [PhrasePair] -> Phrase -> Phrase
 rulesApply (x:xs) y
  | transformationsApply "*" id (x:xs) y /= Nothing =  justToVal(transformationsApply "*" id (x:xs) (reflect y))
  | otherwise = []
-
+{--
+rulesApply :: [PhrasePair] -> Phrase -> Phrase
+rulesApply (x:xs) y
+ | transformationsApply "*" id (x:xs) y /= Nothing =  justToVal(transformationsApply "*" id (x:xs) (reflect y))
+ | otherwise = []
+--}
 reflect :: Phrase -> Phrase
 reflect [] = []
 reflect (x:xs)
@@ -74,12 +82,16 @@ prepare :: String -> Phrase
 prepare = reduce . words . map toLower . filter (not . flip elem ".,:;*!#%&|") 
 
 rulesCompile :: [(String, [String])] -> BotBrain
-{- TO BE WRITTEN -}
-rulesCompile _ = []
+rulesCompile = (map.map2) (f, map f)
+  where f = words . map toLower
+{--
+rulesCompile :: [(String, [String])] -> BotBrain
+rulesCompile x = map otherFunc x
 
-
+otherFunc :: (String, [String]) -> (Phrase, [Phrase])
+otherFunc x = (prepare (fst x), map prepare (snd x))
+--}
 --------------------------------------
-
 
 reductions :: [PhrasePair]
 reductions = (map.map2) (words, words)
@@ -145,22 +157,6 @@ longerWildcardMatch (wc:ps) (x:xs)
   | ps == (x:xs)                          = Just []
   | otherwise                             = Nothing
 
-{-- WORKINGlongerWildcardMatch (wc:ps) (x:xs) -- TODO: match '*' "* and * f" "you and me 123" does not work
-  | length ps > length (x:xs)             = Nothing
-  | head ps /= x                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
-  | elemIndex wc (tail ps) /= Nothing     = Just []
-  | ps /= (x:xs)                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
-  -- | elemIndex wc (tail ps) /= Nothing     = concatWithMaybe x (longerWildcardMatch (wc:(  drop (fromMaybe 0 (elemIndex wc (tail ps))) ps  )) xs) -- Maybe not necessary?
-  | ps == (x:xs)                          = Just []
-  | otherwise                             = Nothing --}
-
---OLDlongerWildcardMatch (wc:ps) (x:xs) 
---  | length ps > length (x:xs)        = Nothing ???
---  | ps /= (x:xs)                     = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
---  | head ps /= x                     = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
---  | ps == (x:xs) || head ps == wc    = Just []
---  | otherwise                        = Nothing
-
 -- Helperfunction that concants an element to a maybe list
 concatWithMaybe :: a -> Maybe [a] -> Maybe [a]
 concatWithMaybe _ Nothing   = Nothing
@@ -186,21 +182,24 @@ matchCheck = matchTest == Just testSubstitutions
 
 -- Applying a single pattern
 transformationApply :: Eq a => a -> ([a] -> [a]) -> [a] -> ([a], [a]) -> Maybe [a]
---transformationApply _ _ _ _ = Nothing
+transformationApply _ _ [] _ = Nothing
 transformationApply wc func (x:xs) ((y:ys), (z:zs))
   | match wc (y:ys) (x:xs) /= Nothing   = Just (substitute wc (z:zs) (func(justToVal(match wc (y:ys) (x:xs)))))
   | otherwise                           = Nothing
-
 
 justToVal :: Maybe a -> a
 justToVal (Just a) = a
 
 
+transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
+transformationsApply _ _ [] _ = Nothing
+transformationsApply wc f t l = foldl1 orElse (map (transformationApply wc f l) t)
+{--
 -- Applying a list of patterns until one succeeds
 transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
 transformationsApply _ _ [] _ = Nothing
 transformationsApply wc func (x:xs) (y:ys)
  | transformationApply wc func (y:ys) x /= Nothing = transformationApply wc func (y:ys) x
  | otherwise = transformationsApply wc func xs (y:ys)
-
+--}
 
