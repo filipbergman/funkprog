@@ -35,15 +35,10 @@ newFunc :: Float -> (Phrase, [Phrase]) -> PhrasePair
 newFunc r pp = (fst pp, pick r (snd pp))
 
 rulesApply :: [PhrasePair] -> Phrase -> Phrase
-rulesApply (x:xs) y
- | transformationsApply "*" id (x:xs) y /= Nothing =  justToVal(transformationsApply "*" id (x:xs) (reflect y))
+rulesApply x y
+ | transformationsApply "*" id x y /= Nothing = (justToVal (transformationsApply "*" reflect x y))
  | otherwise = []
-{--
-rulesApply :: [PhrasePair] -> Phrase -> Phrase
-rulesApply (x:xs) y
- | transformationsApply "*" id (x:xs) y /= Nothing =  justToVal(transformationsApply "*" id (x:xs) (reflect y))
- | otherwise = []
---}
+
 reflect :: Phrase -> Phrase
 reflect [] = []
 reflect (x:xs)
@@ -82,15 +77,11 @@ prepare :: String -> Phrase
 prepare = reduce . words . map toLower . filter (not . flip elem ".,:;*!#%&|") 
 
 rulesCompile :: [(String, [String])] -> BotBrain
-rulesCompile = (map.map2) (f, map f)
-  where f = words . map toLower
-{--
-rulesCompile :: [(String, [String])] -> BotBrain
 rulesCompile x = map otherFunc x
 
 otherFunc :: (String, [String]) -> (Phrase, [Phrase])
-otherFunc x = (prepare (fst x), map prepare (snd x))
---}
+otherFunc x = (words (map toLower (fst x)), map (words . (map toLower)) (snd x))
+
 --------------------------------------
 
 reductions :: [PhrasePair]
@@ -145,10 +136,12 @@ match x (y:ys) (z:zs)
 
 -- Helper function to match
 singleWildcardMatch, longerWildcardMatch :: Eq a => [a] -> [a] -> Maybe [a]
+
 singleWildcardMatch (wc:ps) (x:xs)
   | ps == xs   = Just [x]
   | otherwise  = Nothing
 
+longerWildcardMatch _ [] = Nothing
 longerWildcardMatch (wc:ps) (x:xs) 
   | length ps > length (x:xs)             = Nothing
   | head ps /= x                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
@@ -174,32 +167,24 @@ substituteCheck = substituteTest == testString
 matchTest = match '*' testPattern testString
 matchCheck = matchTest == Just testSubstitutions
 
-
-
 -------------------------------------------------------
 -- Applying patterns
 --------------------------------------------------------
 
 -- Applying a single pattern
 transformationApply :: Eq a => a -> ([a] -> [a]) -> [a] -> ([a], [a]) -> Maybe [a]
-transformationApply _ _ [] _ = Nothing
-transformationApply wc func (x:xs) ((y:ys), (z:zs))
-  | match wc (y:ys) (x:xs) /= Nothing   = Just (substitute wc (z:zs) (func(justToVal(match wc (y:ys) (x:xs)))))
+transformationApply wc func x (y, (z:zs))
+  | match wc y x /= Nothing             = Just (substitute wc (z:zs) (func(justToVal(match wc y x))))
   | otherwise                           = Nothing
 
 justToVal :: Maybe a -> a
 justToVal (Just a) = a
 
-
-transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
-transformationsApply _ _ [] _ = Nothing
-transformationsApply wc f t l = foldl1 orElse (map (transformationApply wc f l) t)
-{--
 -- Applying a list of patterns until one succeeds
 transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
 transformationsApply _ _ [] _ = Nothing
-transformationsApply wc func (x:xs) (y:ys)
- | transformationApply wc func (y:ys) x /= Nothing = transformationApply wc func (y:ys) x
- | otherwise = transformationsApply wc func xs (y:ys)
---}
+transformationsApply wc func (x:xs) y
+ | transformationApply wc func y x /= Nothing = transformationApply wc func y x
+ | otherwise = transformationsApply wc func xs y
+
 
