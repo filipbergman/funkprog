@@ -64,7 +64,6 @@ reflections =
     ("you",    "me")
   ]
 
-
 ---------------------------------------------------------------------------------
 
 endOfDialog :: String -> Bool
@@ -104,8 +103,7 @@ reduce = reductionsApply reductions
 
 reductionsApply :: [PhrasePair] -> Phrase -> Phrase
 {- TO BE WRITTEN -}
-reductionsApply _ = id
-
+reductionsApply x y = justToVal(transformationApply "*" id y x)
 
 -------------------------------------------------------
 -- Match and substitute
@@ -186,5 +184,3 @@ transformationsApply _ _ [] _ = Nothing
 transformationsApply wc func (x:xs) y
  | transformationApply wc func y x /= Nothing = transformationApply wc func y x
  | otherwise = transformationsApply wc func xs y
-
-
