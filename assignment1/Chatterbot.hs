@@ -26,24 +26,31 @@ type BotBrain = [(Phrase, [Phrase])]
 
 --------------------------------------------------------
 
+-- Picks random phrase pairs and checks if rules apply.
 stateOfMind :: BotBrain -> IO (Phrase -> Phrase)
 stateOfMind brain = do
   r <- randomIO :: IO Float
-  return (rulesApply (map (newFunc r) brain))
+  return $ rulesApply $ map (randomPhrasePair r) brain
 
-newFunc :: Float -> (Phrase, [Phrase]) -> PhrasePair
-newFunc r pp = (fst pp, pick r (snd pp))
+-- Helper function that returns a PhrasePair with the first element in the BotBrain element and a random phrase 
+-- from the second element.
+randomPhrasePair :: Float -> (Phrase, [Phrase]) -> PhrasePair
+randomPhrasePair r pp = (fst pp, pick r $ snd pp)
 
 rulesApply :: [PhrasePair] -> Phrase -> Phrase
-rulesApply x y
- | transformationsApply "*" id x y /= Nothing = (justToVal (transformationsApply "*" reflect x y))
- | otherwise = []
+rulesApply x y = try (transformationsApply "*" reflect x) y
 
+-- Uses a helper function which we would have prefered to avoid. For every words, check if it is reflectable-
+-- and if it is, reflect it. 
 reflect :: Phrase -> Phrase
 reflect [] = []
 reflect (x:xs)
- | elem x (map fst reflections) = ((map snd reflections) !! justToVal(elemIndex x (map fst reflections))) : (reflect xs)
+ | elem x $ map fst reflections = (map snd reflections) !! justToVal(elemIndex x (map fst reflections)) : reflect xs
  | otherwise = x : reflect xs
+
+-- Gives the value from a Maybe(Does not check for nothing)
+justToVal :: Maybe a -> a
+justToVal (Just a) = a
 
 reflections =
   [ ("am",     "are"),
@@ -76,10 +83,11 @@ prepare :: String -> Phrase
 prepare = reduce . words . map toLower . filter (not . flip elem ".,:;*!#%&|") 
 
 rulesCompile :: [(String, [String])] -> BotBrain
-rulesCompile x = map otherFunc x
+rulesCompile = map stringToPhrase
 
-otherFunc :: (String, [String]) -> (Phrase, [Phrase])
-otherFunc x = (words (map toLower (fst x)), map (words . (map toLower)) (snd x))
+-- Helper function that converst the string-stringlist pair to a phrase-phraselist pair of lowercase characters. 
+stringToPhrase :: (String, [String]) -> (Phrase, [Phrase])
+stringToPhrase x = (words (map toLower (fst x)), map (words . (map toLower)) (snd x))
 
 --------------------------------------
 
@@ -101,9 +109,15 @@ reductions = (map.map2) (words, words)
 reduce :: Phrase -> Phrase
 reduce = reductionsApply reductions
 
+-- Fix allows us to repeat the same transformation over and over again until transformationsapply no longer-
+-- change anything.
 reductionsApply :: [PhrasePair] -> Phrase -> Phrase
+<<<<<<< HEAD
 {- TO BE WRITTEN -}
 reductionsApply x y = justToVal(transformationApply "*" id y x)
+=======
+reductionsApply x y = fix (try (transformationsApply "*" id x)) y
+>>>>>>> a251a9ef7652e6f2ac71a88e81b4391d34ce8fc1
 
 -------------------------------------------------------
 -- Match and substitute
@@ -116,7 +130,7 @@ substitute x (y:ys) z
   | x == y    = z ++ (substitute x ys z)
   | otherwise = y: (substitute x ys z)
 {-  ++ Adds two lists together, which makes it possible to add 
-    the list z with the recursive call which also gives a list // Filip & Mathias-}
+    the list z with the recursive call which also gives a list -}
 
 
 -- Tries to match two lists. If they match, the result consists of the sublist
@@ -126,32 +140,32 @@ match _ [] [] = Just []
 match _ [] _ = Nothing
 match _ _ [] = Nothing
 
-match x (y:ys) (z:zs)
-  | x == y && length ys == 0  = Just (z:zs) -- If the pattern IS the wildcard
-  | x == y                    = orElse (singleWildcardMatch (y:ys) (z:zs)) (longerWildcardMatch (y:ys) (z:zs))
-  | x /= y && y == z          = match x ys zs
-  | y /= z                    = Nothing
+-- Loops through the characters until the first character(y) is the same as the wildcard, then check-
+-- with the helper functions. We realised afterwards that this is a bit backwards to how it is-
+-- supposed to be, but it works.
+match wc (y:ys) (z:zs)
+  | wc == y && length ys == 0  = Just (z:zs) -- If the pattern IS the wildcard
+  | wc == y                    = orElse (singleWildcardMatch (y:ys) (z:zs)) (longerWildcardMatch (y:ys) (z:zs))
+  | wc /= y && y == z          = match wc ys zs
+  | y /= z                     = Nothing
 
--- Helper function to match
+-- Helper functions to match
+
 singleWildcardMatch, longerWildcardMatch :: Eq a => [a] -> [a] -> Maybe [a]
-
+-- Simply return if the rest of the arrrays are the same.
 singleWildcardMatch (wc:ps) (x:xs)
   | ps == xs   = Just [x]
   | otherwise  = Nothing
 
+-- Recursive function that appends the characters to the maybe until the rest of the lists match.
 longerWildcardMatch _ [] = Nothing
 longerWildcardMatch (wc:ps) (x:xs) 
   | length ps > length (x:xs)             = Nothing
-  | head ps /= x                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
+  | head ps /= x                          = mmap (x:) $ longerWildcardMatch (wc:ps) xs
   | elemIndex wc (tail ps) /= Nothing     = Just []
-  | ps /= (x:xs)                          = concatWithMaybe x (longerWildcardMatch (wc:ps) xs)
+  | ps /= (x:xs)                          = mmap (x:) $ longerWildcardMatch (wc:ps) xs
   | ps == (x:xs)                          = Just []
   | otherwise                             = Nothing
-
--- Helperfunction that concants an element to a maybe list
-concatWithMaybe :: a -> Maybe [a] -> Maybe [a]
-concatWithMaybe _ Nothing   = Nothing
-concatWithMaybe x (Just xs) = Just (x : xs)
 
 -- Test cases --------------------
 
@@ -171,14 +185,14 @@ matchCheck = matchTest == Just testSubstitutions
 
 -- Applying a single pattern
 transformationApply :: Eq a => a -> ([a] -> [a]) -> [a] -> ([a], [a]) -> Maybe [a]
-transformationApply wc func x (y, (z:zs))
-  | match wc y x /= Nothing             = Just (substitute wc (z:zs) (func(justToVal(match wc y x))))
+transformationApply wc func x (y, z)
+  | match wc y x /= Nothing             = Just $ substitute wc z $ func $ try (match wc y) x
   | otherwise                           = Nothing
 
-justToVal :: Maybe a -> a
-justToVal (Just a) = a
 
 -- Applying a list of patterns until one succeeds
+
+-- Loops through all the Phrase pairs and compares with the given phrase to see what to replace.
 transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
 transformationsApply _ _ [] _ = Nothing
 transformationsApply wc func (x:xs) y
