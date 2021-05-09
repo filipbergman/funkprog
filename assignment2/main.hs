@@ -1,25 +1,11 @@
+-- By Mathias Bothen ma6728bo-s
+-- and Filip Bergman fi5731be-s
+
 scoreSpace = -1
 scoreMismatch = -1
 scoreMatch = 0
 string1 = "writers"
 string2 = "vintner"
-
-mcsLength :: Eq a => [a] -> [a] -> Int
-mcsLength xs ys = mcsLen (length xs) (length ys)
-  where
-    mcsLen i j = mcsTable!!i!!j
-    mcsTable = [[ mcsEntry i j | j<-[0..]] | i<-[0..] ]
-       
-    mcsEntry :: Int -> Int -> Int
-    mcsEntry _ 0 = 0
-    mcsEntry 0 _ = 0
-    mcsEntry i j
-      | x == y    = 1 + mcsLen (i-1) (j-1)
-      | otherwise = max (mcsLen i (j-1)) 
-                        (mcsLen (i-1) j)
-      where
-         x = xs!!(i-1)
-         y = ys!!(j-1)
 
 -- A
 similarityScore :: String -> String -> Int
@@ -34,8 +20,29 @@ score x y
  | x == y = scoreMatch
  | otherwise = scoreMismatch
 
+-- Part 3: Optimized Similarity score
+optSimilarityScore :: String -> String -> Int
+optSimilarityScore xs ys = tableVal (length xs) (length ys)
+  where
+    tableVal i j = mcsTable!!i!!j
+    mcsTable = [[ tableEntry i j | j<-[0..]] | i<-[0..] ]
+        
+    tableEntry :: Int -> Int -> Int
+    tableEntry 0 0 = 0
+    tableEntry a 0 = scoreSpace * a
+    tableEntry 0 b = scoreSpace * b
+    tableEntry i j = l
+      where
+          l = maximum [(prev1 + score x y), 
+                  (prev2 + score x '-'), 
+                  (prev3 + score '-' y)]
+          x = xs!!(i-1)
+          y = ys!!(j-1)
+          prev1 = tableVal (i-1) (j-1)
+          prev2 = tableVal (i-1) j
+          prev3 = tableVal i (j-1)
 
--- EXPLAIN WHAT THIS DOES
+
 -- Attach h1 and h2 to the beginning of xs and ys which are lists drawn from the variable aList
 attachHeads :: a -> a -> [([a],[a])] -> [([a],[a])]
 attachHeads h1 h2 aList = [(h1:xs,h2:ys) | (xs,ys) <- aList]
@@ -59,13 +66,7 @@ simScore xs [] = scoreMismatch * length xs
 simScore [] ys = scoreMismatch * length ys
 simScore (x:xs) (y:ys) = simScore xs ys + score x y
 
---optoptAlignments :: String -> String -> [AlignmentType]
---optoptAlignments [] [] = [([], [])]
---optoptAlignments (x:xs) [] = attachHeads x '-' (optoptAlignments xs [])
---optoptAlignments [] (y:ys) = attachHeads '-' y (optoptAlignments [] ys)
---optoptAlignments (x:xs) (y:ys) = maximaBy (uncurry simScore) (concat [attachHeads x y (optoptAlignments xs ys), attachHeads x '-' (optoptAlignments xs (y:ys)), attachHeads '-' y (optoptAlignments (x:xs) ys)])
-
-
+-- Part 3: Optimized optimal alignments
 optoptAlignments :: String -> String -> [AlignmentType]
 optoptAlignments xs ys = map (mapTuple reverse) (snd $ tableVal (length xs) (length ys))
   where
@@ -76,10 +77,11 @@ optoptAlignments xs ys = map (mapTuple reverse) (snd $ tableVal (length xs) (len
     tableEntry 0 0 = (0, [([], [])])
     tableEntry a 0 = (scoreSpace * a, [(take a xs, replicate a '-')])
     tableEntry 0 b = (scoreSpace * b, [(replicate b '-', take b ys)])
-    tableEntry i j 
-     | x == y = (prev1 + score x y, attachHeads x y (snd $ tableVal (i-1) (j-1)))
-     | otherwise = head (maximaBy fst [(prev2 + score x '-', attachHeads x '-' (snd (tableVal (i-1) j))), (prev3 + score '-' y, attachHeads '-' y (snd $ tableVal i (j-1)))])
+    tableEntry i j = (fst (head l), concat (map snd l))
       where
+         l = (maximaBy fst [(prev1 + score x y, attachHeads x y (snd $ tableVal (i-1) (j-1))), 
+                  (prev2 + score x '-', attachHeads x '-' (snd (tableVal (i-1) j))), 
+                  (prev3 + score '-' y, attachHeads '-' y (snd $ tableVal i (j-1)))])
          x = xs!!(i-1)
          y = ys!!(j-1)
          prev1 = fst $ tableVal (i-1) (j-1)
@@ -89,12 +91,13 @@ optoptAlignments xs ys = map (mapTuple reverse) (snd $ tableVal (length xs) (len
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple f (a1, a2) = (f a1, f a2)
 
-
+-- E
 outputOptAlignments :: String -> String -> IO ()
 outputOptAlignments string1 string2 = do 
-  let ali = (optAlignments string1 string2)
+  let ali = (optoptAlignments string1 string2)
   putStrLn ("There are " ++ show (length ali) ++ " optimal alignments:") 
   outputHelper ali
+  putStrLn ("There was " ++ show (length ali) ++ " optimal alignments...") 
 
 outputHelper :: [AlignmentType] -> IO ()
 outputHelper [] = putStrLn "\n"
