@@ -59,29 +59,35 @@ simScore xs [] = scoreMismatch * length xs
 simScore [] ys = scoreMismatch * length ys
 simScore (x:xs) (y:ys) = simScore xs ys + score x y
 
+--optoptAlignments :: String -> String -> [AlignmentType]
+--optoptAlignments [] [] = [([], [])]
+--optoptAlignments (x:xs) [] = attachHeads x '-' (optoptAlignments xs [])
+--optoptAlignments [] (y:ys) = attachHeads '-' y (optoptAlignments [] ys)
+--optoptAlignments (x:xs) (y:ys) = maximaBy (uncurry simScore) (concat [attachHeads x y (optoptAlignments xs ys), attachHeads x '-' (optoptAlignments xs (y:ys)), attachHeads '-' y (optoptAlignments (x:xs) ys)])
+
+
 optoptAlignments :: String -> String -> [AlignmentType]
-optoptAlignments [] [] = [([], [])]
-optoptAlignments (x:xs) [] = attachHeads x '-' (optoptAlignments xs [])
-optoptAlignments [] (y:ys) = attachHeads '-' y (optoptAlignments [] ys)
-optoptAlignments (x:xs) (y:ys) = maximaBy (uncurry simScore) (concat [attachHeads x y (optoptAlignments xs ys), attachHeads x '-' (optoptAlignments xs (y:ys)), attachHeads '-' y (optoptAlignments (x:xs) ys)])
-
-
-optoptAlignments :: Eq a => [a] -> [a] -> [AlignmentType]
-optoptAlignments xs ys = tableVal (length xs) (length ys)
+optoptAlignments xs ys = map (mapTuple reverse) (snd $ tableVal (length xs) (length ys))
   where
     tableVal i j = mcsTable!!i!!j
     mcsTable = [[ tableEntry i j | j<-[0..]] | i<-[0..] ]
        
     tableEntry :: Int -> Int -> (Int, [AlignmentType])
-    tableEntry a 0 = (scoreSpace * a, )
-    tableEntry 0 b = (scoreSpace * b, )
-    tableEntry i j
-      | x == y    = 1 + tableVal (i-1) (j-1)
-      | otherwise = max (tableVal i (j-1)) 
-                        (tableVal (i-1) j)
+    tableEntry 0 0 = (0, [([], [])])
+    tableEntry a 0 = (scoreSpace * a, [(take a xs, replicate a '-')])
+    tableEntry 0 b = (scoreSpace * b, [(replicate b '-', take b ys)])
+    tableEntry i j 
+     | x == y = (prev1 + score x y, attachHeads x y (snd $ tableVal (i-1) (j-1)))
+     | otherwise = head (maximaBy fst [(prev2 + score x '-', attachHeads x '-' (snd (tableVal (i-1) j))), (prev3 + score '-' y, attachHeads '-' y (snd $ tableVal i (j-1)))])
       where
          x = xs!!(i-1)
          y = ys!!(j-1)
+         prev1 = fst $ tableVal (i-1) (j-1)
+         prev2 = fst $ tableVal (i-1) j
+         prev3 = fst $ tableVal i (j-1)
+
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple f (a1, a2) = (f a1, f a2)
 
 
 outputOptAlignments :: String -> String -> IO ()
