@@ -38,7 +38,10 @@ randomPhrasePair :: Float -> (Phrase, [Phrase]) -> PhrasePair
 randomPhrasePair r pp = (fst pp, pick r $ snd pp)
 
 rulesApply :: [PhrasePair] -> Phrase -> Phrase
-rulesApply x y = try (transformationsApply "*" reflect x) y
+rulesApply x y 
+ | y == z = []
+ | otherwise = z
+ where z = try (transformationsApply "*" reflect x) y
 
 -- Uses a helper function which we would have prefered to avoid. For every words, check if it is reflectable-
 -- and if it is, reflect it. 
@@ -112,47 +115,41 @@ reduce = reductionsApply reductions
 -- Fix allows us to repeat the same transformation over and over again until transformationsapply no longer-
 -- change anything.
 reductionsApply :: [PhrasePair] -> Phrase -> Phrase
-<<<<<<< HEAD
-{- TO BE WRITTEN -}
-reductionsApply x y = justToVal(transformationApply "*" id y x)
-=======
 reductionsApply x y = fix (try (transformationsApply "*" id x)) y
->>>>>>> a251a9ef7652e6f2ac71a88e81b4391d34ce8fc1
 
 -------------------------------------------------------
 -- Match and substitute
 --------------------------------------------------------
 
+{-  ++ Adds two lists together, which makes it possible to add 
+    the list z with the recursive call which also gives a list -}
 -- Replaces a wildcard in a list with the list given as the third argumen
 substitute :: Eq a => a -> [a] -> [a] -> [a]
 substitute _ [] _ = []
 substitute x (y:ys) z
   | x == y    = z ++ (substitute x ys z)
   | otherwise = y: (substitute x ys z)
-{-  ++ Adds two lists together, which makes it possible to add 
-    the list z with the recursive call which also gives a list -}
 
 
 -- Tries to match two lists. If they match, the result consists of the sublist
 -- bound to the wildcard in the pattern list.
+-- Loops through the characters until the first character(y) is the same as the wildcard, then check-
+-- with the helper functions. We realised afterwards that this is a bit backwards to how it is-
+-- supposed to be, but it works.
 match :: Eq a => a -> [a] -> [a] -> Maybe [a]
 match _ [] [] = Just []
 match _ [] _ = Nothing
 match _ _ [] = Nothing
-
--- Loops through the characters until the first character(y) is the same as the wildcard, then check-
--- with the helper functions. We realised afterwards that this is a bit backwards to how it is-
--- supposed to be, but it works.
 match wc (y:ys) (z:zs)
   | wc == y && length ys == 0  = Just (z:zs) -- If the pattern IS the wildcard
   | wc == y                    = orElse (singleWildcardMatch (y:ys) (z:zs)) (longerWildcardMatch (y:ys) (z:zs))
   | wc /= y && y == z          = match wc ys zs
   | y /= z                     = Nothing
 
--- Helper functions to match
 
-singleWildcardMatch, longerWildcardMatch :: Eq a => [a] -> [a] -> Maybe [a]
+-- Helper functions to match
 -- Simply return if the rest of the arrrays are the same.
+singleWildcardMatch, longerWildcardMatch :: Eq a => [a] -> [a] -> Maybe [a]
 singleWildcardMatch (wc:ps) (x:xs)
   | ps == xs   = Just [x]
   | otherwise  = Nothing
@@ -190,8 +187,8 @@ transformationApply wc func x (y, z)
   | otherwise                           = Nothing
 
 
--- Applying a list of patterns until one succeeds
 
+-- Applying a list of patterns until one succeeds
 -- Loops through all the Phrase pairs and compares with the given phrase to see what to replace.
 transformationsApply :: Eq a => a -> ([a] -> [a]) -> [([a], [a])] -> [a] -> Maybe [a]
 transformationsApply _ _ [] _ = Nothing
