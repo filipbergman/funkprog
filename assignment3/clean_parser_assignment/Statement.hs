@@ -11,7 +11,8 @@ data Statement =
     Read String |
     Write Expr.T |
     Begin [Statement] |
-    While Expr.T Statement
+    While Expr.T Statement |
+    Comment String
     deriving Show
 
 assignment = word #- accept ":=" # Expr.parse #- require ";" >-> buildAss
@@ -35,6 +36,9 @@ buildBegin (s) = Begin s
 while = accept "while" -# Expr.parse # require "do" -# parse >-> buildWhile
 buildWhile (e, s) = While e s
 
+comment = accept "--" #- require "\n" >-> buildComment
+buildComment (s) = Comment s
+
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
 exec [] _ _ = []
 exec (If cond thenStmts elseStmts: stmts) dict input = 
@@ -55,8 +59,20 @@ exec (While expr st:stmts) dict input =
     else exec stmts dict input
 exec (Write expr:stmts) dict input =
     (Expr.value expr dict):(exec stmts dict input)
+exec (Comment str:stmts) dict input = 
+    exec stmts dict input
 
 
 instance Parse Statement where
-  parse = readState ! skip ! write ! assignment ! ifState ! while ! begin
-  toString = error "Statement.toString not implemented"
+  parse = readState ! skip ! write ! assignment ! ifState ! while ! begin ! comment
+  toString = printStatement
+
+printStatement :: Statement -> String
+printStatement (Assignment str e) = str ++ " := " ++ Expr.toString e ++ ";\n"
+printStatement (Skip) = "skip;\n"
+printStatement (Read s) = "read " ++ s ++";\n"
+printStatement (Write e) = "write " ++ Expr.toString e ++ ";\n"
+printStatement (Begin xs) = "begin\n"
+printStatement (While e st) = "while " ++ Expr.toString e ++ "do\n" ++ printStatement st
+printStatement (If x s1 s2) = ""
+printStatement (Comment s) = "--" ++ s
