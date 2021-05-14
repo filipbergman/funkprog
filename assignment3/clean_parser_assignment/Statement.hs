@@ -36,10 +36,26 @@ while = accept "while" -# Expr.parse # require "do" -# parse >-> buildWhile
 buildWhile (e, s) = While e s
 
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
+exec [] _ _ = []
 exec (If cond thenStmts elseStmts: stmts) dict input = 
     if (Expr.value cond dict)>0 
     then exec (thenStmts: stmts) dict input
     else exec (elseStmts: stmts) dict input
+exec (Assignment str expr: stmts) dict input = 
+    exec stmts (Dictionary.insert (str, Expr.value expr dict) dict) input
+exec (Skip:stmts) dict input =
+    exec stmts dict input
+exec (Read str:stmts) dict (x:xs) =
+    exec stmts (Dictionary.insert (str, x) dict) xs
+exec (Begin x:stmts) dict input = 
+    exec (x++stmts) dict input
+exec (While expr st:stmts) dict input = 
+    if(Expr.value expr dict) > 0
+    then exec (st:stmts) dict input
+    else exec stmts dict input
+exec (Write expr:stmts) dict input =
+    (Expr.value expr dict):(exec stmts dict input)
+
 
 instance Parse Statement where
   parse = readState ! skip ! write ! assignment ! ifState ! while ! begin
