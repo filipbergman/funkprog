@@ -71,12 +71,19 @@ shw prec (Mul t u) = parens (prec>6) (shw 6 t ++ "*" ++ shw 6 u)
 shw prec (Div t u) = parens (prec>6) (shw 6 t ++ "/" ++ shw 7 u)
 
 value :: Expr -> Dictionary.T String Integer -> Integer
-value (Num n) dic = n
-value (Var v) dic =
-value (Add t u) dic =
-value (Sub t u) dic =
-value (Mul t u) dic =
-value (Div t u) dic =
+value (Num n) dict = n
+value (Var v) dict = 
+ case Dictionary.lookup v dict of
+ Nothing -> error $ "Expr.value: undefined variable " ++ v
+ Just x -> x
+ 
+value (Add t u) dict = value t dict + value u dict
+value (Sub t u) dict = value t dict - value u dict
+value (Mul t u) dict = value t dict * value u dict
+value (Div t u) dict 
+ | value u dict == 0 = error $ "Expr.value: division by 0"
+ | otherwise = value t dict `div` value u dict
+
 
 instance Parse Expr where
     parse = expr

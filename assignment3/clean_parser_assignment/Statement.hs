@@ -6,11 +6,34 @@ import qualified Expr
 type T = Statement
 data Statement =
     Assignment String Expr.T |
-    If Expr.T Statement Statement
+    If Expr.T Statement Statement |
+    Skip |
+    Read String |
+    Write Expr.T |
+    Begin [Statement] |
+    While Expr.T Statement
     deriving Show
 
 assignment = word #- accept ":=" # Expr.parse #- require ";" >-> buildAss
 buildAss (v, e) = Assignment v e
+
+ifState = accept "if" -# Expr.parse # require "then" -# parse # require "else" -# parse >-> buildIf
+buildIf (e, s) = If (fst e) (snd e) s
+
+skip = accept "skip" #- require ";" >-> buildSkip
+buildSkip (s) = Skip
+
+readState = accept "read" -# word #- require ";" >-> buildRead
+buildRead (s) = Read s
+
+write = accept "write" -# Expr.parse #- require ";" >-> buildWrite
+buildWrite (e) = Write e
+
+begin = accept "begin" -# iter parse #- require "end" >-> buildBegin
+buildBegin (s) = Begin s
+
+while = accept "while" -# Expr.parse # require "do" -# parse >-> buildWhile
+buildWhile (e, s) = While e s
 
 exec :: [T] -> Dictionary.T String Integer -> [Integer] -> [Integer]
 exec (If cond thenStmts elseStmts: stmts) dict input = 
@@ -19,5 +42,5 @@ exec (If cond thenStmts elseStmts: stmts) dict input =
     else exec (elseStmts: stmts) dict input
 
 instance Parse Statement where
-  parse = error "Statement.parse not implemented"
+  parse = readState ! skip ! write ! assignment ! ifState ! while ! begin
   toString = error "Statement.toString not implemented"
