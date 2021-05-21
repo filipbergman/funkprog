@@ -40,7 +40,7 @@ chars 0 = return []
 chars n = char # chars (n-1) >-> cons 
 
 accept :: String -> Parser String
-accept w = (token (chars (length w))) ? (==w) 
+accept w = token (chars (length w)) ? (==w) 
 
 require :: String -> Parser String
 require w = accept w ! err ("Expecting " ++ w)
