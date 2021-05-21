@@ -1,4 +1,6 @@
 module Main where
+import Data.Char    
+
 
 main = putStrLn "Hello, world!"
 r = {- hello -} 5.0   -- x is 5.
@@ -24,3 +26,6 @@ greeting = do
     putStrLn("You " ++ name ++ ", me Haskell!")
 
 q = [1,3..10]
+
+reverseWords :: String -> String
+reverseWords = unwords . map reverse . words
