@@ -1,4 +1,6 @@
 module Main where
+import Data.Char    
+
 
 main = putStrLn "Hello, world!"
 r = {- hello -} 5.0   -- x is 5.
@@ -31,3 +33,5 @@ quickSort (x:xs) =
     let smallerVals = quickSort [a | a <- xs, a <= x]
         biggerVals  = quickSort [a | a <- xs, a > x]
     in  smallerVals ++ [x] ++ biggerVals
+reverseWords :: String -> String
+reverseWords = unwords . map reverse . words
