@@ -27,5 +27,11 @@ greeting = do
 
 q = [1,3..10]
 
+quickSort :: (Ord a) => [a] -> [a]
+quickSort [] = []
+quickSort (x:xs) = 
+    let smallerVals = quickSort [a | a <- xs, a <= x]
+        biggerVals  = quickSort [a | a <- xs, a > x]
+    in  smallerVals ++ [x] ++ biggerVals
 reverseWords :: String -> String
 reverseWords = unwords . map reverse . words

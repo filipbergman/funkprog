@@ -72,7 +72,7 @@ printStatement (Assignment str e) indent = replicate indent ' ' ++ str ++ " := "
 printStatement (Skip) indent = replicate indent ' ' ++ "skip;\n"
 printStatement (Read s) indent = replicate indent ' ' ++ "read " ++ s ++";\n"
 printStatement (Write e) indent = replicate indent ' ' ++ "write " ++ Expr.toString e ++ ";\n"
-printStatement (Begin xs) indent = replicate indent ' ' ++ "begin\n" ++ concatMap (flip printStatement (indent+2)) xs ++ replicate indent ' ' ++ "end\n"
+printStatement (Begin xs) indent = replicate indent ' ' ++ "begin\n" ++ (concatMap (flip printStatement (indent+2)) xs) ++ replicate indent ' ' ++ "end\n"
 printStatement (While e st) indent = replicate indent ' ' ++ "while " ++ Expr.toString e ++ " do\n" ++ printStatement st (indent+2)
-printStatement (If e s1 s2) indent = replicate indent ' ' ++ "If " ++ Expr.toString e ++ " then\n" ++ printStatement s1 (indent+2) ++ replicate indent ' ' ++ "else\n" ++ printStatement s2 (indent+2)
-printStatement (Comment s) indent = replicate indent ' ' ++ "--" ++ s
+printStatement (If e s1 s2) indent = replicate indent ' ' ++ "if " ++ Expr.toString e ++ " then\n" ++ printStatement s1 (indent+2) ++ replicate indent ' ' ++ "else\n" ++ printStatement s2 (indent+2)
+printStatement (Comment s) indent = replicate indent ' ' ++ "--" ++ s ++ "\n"
