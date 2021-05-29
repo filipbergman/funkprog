@@ -1,6 +1,6 @@
 module Main where
 import Data.Char    
-
+import Data.List   
 
 main = putStrLn "Hello, world!"
 r = {- hello -} 5.0   -- x is 5.
@@ -35,3 +35,9 @@ quickSort (x:xs) =
     in  smallerVals ++ [x] ++ biggerVals
 reverseWords :: String -> String
 reverseWords = unwords . map reverse . words
+
+head' :: [a] -> a  
+head' = foldl1 (\_ x -> x)  
+
+sqrtSums :: Int  
+sqrtSums = length (takeWhile (<1000) (scanl1 (+) (map sqrt [1..]))) + 1
