@@ -43,3 +43,16 @@ Yes, it will return Just 7
 Just 5 :: (Monad m, Num a) => m a
 
 -- Q5
+-- * parSort2 uses par, which means that it it allows for the left argument, i.e. greater, to be evaluated to WHNF if possible, in parallel with returning the 
+-- second argument. In this case it uses par two times, first on grtr and (lesser..) to evaluate grtr before it is used later, then on grtr to evaluate that 
+-- before it is used in the list combination. This has no real effect since in only evaluates to WHNF and the laziness.
+-- * parSort3 uses par in the beginning, so it is the same as parSort2 here, but it uses pseq between lesser and (lesser..) which means it guarantees for evaluation
+-- of the left argument before returning the second one.
+-- * parSort4 uses force to evaluate the entire lists to WHNF, so that the entire lists can be parallelised.
+
+-- Q6
+-- a)
+-- m1 consists of a list containin two Music values, where the first value is a sequencial composition of two notes, and the second one is one note.
+-- m2 consists of a list containing three individual note values.
+-- b)
+-- line2 (x:xs) = foldr (:+:)
